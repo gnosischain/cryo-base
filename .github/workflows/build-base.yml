@@ -1,9 +1,6 @@
 name: Build Cryo Base Image
 
 on:
-  schedule:
-    # Build weekly on Sunday at 2 AM UTC
-    - cron: '0 2 * * 0'
   push:
     branches:
       - main
@@ -16,11 +13,6 @@ on:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        platform:
-          - linux/amd64
-          - linux/arm64
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -43,59 +35,20 @@ jobs:
         id: date
         run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
 
-      - name: Extract platform name
-        id: platform
-        run: |
-          platform="${{ matrix.platform }}"
-          platform_tag="${platform//\//-}"
-          echo "platform_tag=$platform_tag" >> $GITHUB_OUTPUT
-
       - name: Update Dockerfile with Cryo commit if provided
         if: ${{ github.event.inputs.cryo_commit != '' }}
         run: |
           sed -i "s/git checkout .*/git checkout ${{ github.event.inputs.cryo_commit }}/" Dockerfile
           sed -i "s/cryo.commit=.*/cryo.commit=\"${{ github.event.inputs.cryo_commit }}\"/" Dockerfile
 
-      - name: Build and Push Platform Image
+      - name: Build and push multi-platform image
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: ${{ matrix.platform }}
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/cryo-base:${{ steps.date.outputs.date }}-${{ steps.platform.outputs.platform_tag }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/cryo-base:buildcache-${{ steps.platform.outputs.platform_tag }}
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/cryo-base:buildcache-${{ steps.platform.outputs.platform_tag }},mode=max
-
-  manifest:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Get date for versioning
-        id: date
-        run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
-
-      - name: Create and push manifests
-        run: |
-          # Create date-tagged manifest
-          docker manifest create \
-            ghcr.io/${{ github.repository_owner }}/cryo-base:${{ steps.date.outputs.date }} \
-            ghcr.io/${{ github.repository_owner }}/cryo-base:${{ steps.date.outputs.date }}-linux-amd64 \
-            ghcr.io/${{ github.repository_owner }}/cryo-base:${{ steps.date.outputs.date }}-linux-arm64
-          
-          # Create latest manifest
-          docker manifest create \
-            ghcr.io/${{ github.repository_owner }}/cryo-base:latest \
-            ghcr.io/${{ github.repository_owner }}/cryo-base:${{ steps.date.outputs.date }}-linux-amd64 \
-            ghcr.io/${{ github.repository_owner }}/cryo-base:${{ steps.date.outputs.date }}-linux-arm64
-          
-          # Push manifests
-          docker manifest push ghcr.io/${{ github.repository_owner }}/cryo-base:${{ steps.date.outputs.date }}
-          docker manifest push ghcr.io/${{ github.repository_owner }}/cryo-base:latest
+            ghcr.io/${{ github.repository_owner }}/cryo-base:latest
+            ghcr.io/${{ github.repository_owner }}/cryo-base:${{ steps.date.outputs.date }}
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/cryo-base:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/cryo-base:buildcache,mode=max
