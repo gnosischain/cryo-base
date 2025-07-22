@@ -23,6 +23,16 @@ COPY . .
 # ...
 ```
 
+One can run this version as
+
+```shell
+ docker run --rm -v "$(pwd)":/data cryo-base:latest \
+  cryo blocks \
+  --blocks 39828831:39828831 \
+  --rpc 'URL' \
+  --include-columns block_number timestamp withdrawals_root withdrawals \
+  -o /data
+```
 ## Build Schedule
 
 - **Automatic builds**: Every Sunday at 2 AM UTC
