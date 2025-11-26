@@ -48,13 +48,10 @@ RUN cd /tmp/cryo-build/cryo \
     && grep -n -A 8 -B 2 "withdrawals" crates/freeze/src/datasets/blocks.rs
 
 # Patch crates/freeze/src/types/sources.rs to treat RPC errors (like null) as empty traces
-# This ensures that if the RPC returns null for traces (which causes a deserialization error or similar),
-# it defaults to an empty Vec instead of failing.
+# This replaces the Self::map_err call with a version that unwraps_or(Vec::new()) to handle nulls
 RUN cd /tmp/cryo-build/cryo \
     && echo "=== Patching sources.rs to handle null RPC responses as empty ===" \
-    && sed -i '/fn trace_replay_block_transactions/,/}/ { \
-        /Self::map_err(/,/)/c\        Ok(self.provider.trace_replay_block_transactions(block.into(), \&trace_types).await.unwrap_or(Vec::new())) \
-    }' crates/freeze/src/types/sources.rs \
+    && sed -i '/fn trace_replay_block_transactions/,/}/ { /Self::map_err(/ { s/Self::map_err(/Ok(self.provider.trace_replay_block_transactions(block.into(), \&trace_types).await.unwrap_or(Vec::new()))/; N; N; s/\n.*//g; } }' crates/freeze/src/types/sources.rs \
     && echo "=== Verifying sources.rs patch ===" \
     && grep -A 5 "fn trace_replay_block_transactions" crates/freeze/src/types/sources.rs
 
