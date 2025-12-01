@@ -5,6 +5,7 @@
 *.swp
 *.swo
 *~
+.cryo/
 
 # Docker
 .dockerignore

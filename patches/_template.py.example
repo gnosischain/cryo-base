@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+"""
+Patch: [PATCH NAME]
+
+[Description of what this patch does and why it's needed]
+"""
+
+import re
+from pathlib import Path
+
+# Required: Short description shown during patch application
+DESCRIPTION = "[Short description of what this patch does]"
+
+# The file(s) this patch modifies
+TARGET_FILE = Path("crates/freeze/src/[path/to/file.rs]")
+
+
+def main():
+    """
+    Apply the patch.
+    
+    Returns:
+        True: Patch applied successfully
+        False: Patch failed
+        "skipped": Patch already applied (idempotent check)
+    """
+    if not TARGET_FILE.exists():
+        print(f"ERROR: {TARGET_FILE} not found")
+        return False
+    
+    text = TARGET_FILE.read_text()
+    
+    # Idempotency check: Look for something unique that indicates patch is applied
+    if "[UNIQUE_STRING_FROM_YOUR_PATCH]" in text:
+        print("Already patched")
+        return "skipped"
+    
+    # Apply your modifications here
+    # Option 1: Simple string replacement
+    # text = text.replace("old_string", "new_string")
+    
+    # Option 2: Regex replacement for complex patterns
+    # pattern = re.compile(r'...', re.MULTILINE)
+    # text = pattern.sub(replacement, text)
+    
+    # Write the modified file
+    TARGET_FILE.write_text(text)
+    
+    return True
+
+
+if __name__ == "__main__":
+    import sys
+    result = main()
+    sys.exit(0 if result else 1)
+```
