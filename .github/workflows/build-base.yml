@@ -4,6 +4,14 @@ on:
   push:
     branches:
       - main
+    # Build only when an image input changes. A docs-only commit (README, AGENTS.md,
+    # CLAUDE.md) must not republish `latest` and a new date tag: production pins a date
+    # tag and moves only when a human repins the indexer. Manual builds stay available
+    # through workflow_dispatch.
+    paths:
+      - Dockerfile
+      - apply_patches.py
+      - 'patches/**'
   workflow_dispatch:
     inputs:
       cryo_commit:
